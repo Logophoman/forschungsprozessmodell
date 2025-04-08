@@ -1,0 +1,1428 @@
+<!DOCTYPE html>
+<html lang="de">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interaktive Forschungsprozessmodelle</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            /* Dark Blue */
+            --secondary-color: #3498db;
+            /* Bright Blue */
+            --accent-color: #e74c3c;
+            /* Red */
+            --background-color: #f8f9fa;
+            /* Very Light Gray */
+            --text-color: #34495e;
+            /* Dark Gray */
+            --box-bg-color: #ffffff;
+            /* White */
+            --box-border-color: #adb5bd;
+            /* Medium Gray */
+            --highlight-color: #f1c40f;
+            /* Yellow */
+            --connector-color: #526b7e;
+            /* Darker Gray-Blue */
+            --font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            --svg-text-size: 11px;
+            --svg-text-size-small: 9.5px;
+            --svg-text-size-label: 10px;
+        }
+
+        body {
+            font-family: var(--font-family);
+            background-color: var(--background-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1300px;
+            /* Increased width for potentially wider diagrams */
+            margin: 20px auto;
+            background-color: var(--box-bg-color);
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+        }
+
+        h1,
+        h2 {
+            color: var(--primary-color);
+            border-bottom: 2px solid var(--secondary-color);
+            padding-bottom: 5px;
+            margin-top: 0;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        h2 {
+            margin-top: 25px;
+            margin-bottom: 15px;
+        }
+
+        h3 {
+            color: var(--primary-color);
+            margin-top: 0;
+            margin-bottom: 10px;
+        }
+
+        /* Tabs */
+        .tab-navigation {
+            display: flex;
+            border-bottom: 1px solid #dee2e6;
+            /* Slightly lighter border */
+            margin-bottom: 25px;
+        }
+
+        .tab-button {
+            padding: 12px 20px;
+            cursor: pointer;
+            border: none;
+            background-color: transparent;
+            font-size: 1em;
+            font-weight: 600;
+            /* Slightly bolder */
+            color: var(--text-color);
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+            margin-right: 5px;
+        }
+
+        .tab-button:hover {
+            background-color: rgba(52, 152, 219, 0.1);
+            color: var(--secondary-color);
+        }
+
+        .tab-button.active {
+            color: var(--secondary-color);
+            border-bottom: 3px solid var(--secondary-color);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.5s;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        /* SVG Styles */
+        .process-model-svg {
+            width: 100%;
+            height: auto;
+            margin-bottom: 20px;
+            border: 1px solid #e9ecef;
+            /* Lighter border for SVG area */
+            border-radius: 4px;
+            padding: 15px;
+            background-color: #ffffff;
+            /* White background for clarity */
+            display: block;
+            /* Prevent extra space below */
+            box-sizing: border-box;
+        }
+
+        .process-box {
+            fill: var(--box-bg-color);
+            stroke: var(--box-border-color);
+            stroke-width: 1.2;
+            /* Slightly thinner default lines */
+            rx: 3;
+            ry: 3;
+            cursor: pointer;
+            transition: fill 0.2s ease, stroke 0.2s ease, stroke-width 0.2s ease;
+        }
+
+        .process-box.multi-part {
+            /* Dashed border for multi-part boxes */
+            stroke-dasharray: 5, 3;
+            stroke-width: 1;
+        }
+
+        .process-box.dashed-border {
+            /* Specific class for Brosius example */
+            stroke-dasharray: 5, 3;
+            stroke-width: 1;
+            fill: none;
+            /* Often used as just a container */
+            pointer-events: none;
+            /* Don't capture clicks on the container itself */
+        }
+
+
+        .process-box:hover {
+            stroke: var(--secondary-color);
+            stroke-width: 1.5;
+        }
+
+        .process-box.highlighted {
+            stroke: var(--highlight-color);
+            stroke-width: 2.5;
+            fill: #fffadf;
+            /* Light yellow fill */
+        }
+
+        .process-text {
+            font-family: var(--font-family);
+            font-size: var(--svg-text-size);
+            fill: var(--text-color);
+            text-anchor: middle;
+            dominant-baseline: central;
+            /* Better vertical centering */
+            pointer-events: none;
+            /* Allow line breaks using dy */
+        }
+
+        .process-text tspan {
+            pointer-events: none;
+        }
+
+        .process-text.small {
+            font-size: var(--svg-text-size-small);
+        }
+
+        .process-text.label {
+            font-size: var(--svg-text-size-label);
+            font-style: italic;
+            fill: #555;
+        }
+
+        .process-text.phase-label {
+            font-size: var(--svg-text-size-label);
+            font-weight: bold;
+            fill: var(--primary-color);
+            text-anchor: end;
+            /* Align to the right */
+        }
+
+        .process-text.context-label {
+            font-family: var(--font-family);
+            font-size: var(--svg-text-size-label);
+            font-style: italic;
+            fill: #666;
+            text-anchor: end;
+        }
+
+        .process-text.rotated {
+            font-size: var(--svg-text-size-label);
+            font-style: italic;
+            fill: #666;
+            text-anchor: middle;
+        }
+
+
+        .arrow {
+            stroke: var(--connector-color);
+            stroke-width: 1.3;
+            fill: none;
+        }
+
+        .arrow-head {
+            fill: var(--connector-color);
+            stroke: none;
+            /* No border on arrowhead */
+        }
+
+        .phase-line {
+            stroke: var(--box-border-color);
+            stroke-width: 1;
+            stroke-dasharray: 4, 2;
+        }
+
+        .context-separator {
+            stroke: #ced4da;
+            /* Lighter gray for context lines */
+            stroke-width: 1;
+            stroke-dasharray: 6, 3;
+        }
+
+
+        /* Interaction Feedback Area */
+        .interaction-feedback {
+            margin-top: 25px;
+            padding: 15px;
+            background-color: #e9f5ff;
+            /* Light blue background */
+            border: 1px solid #bde0fe;
+            /* Blue border */
+            border-radius: 4px;
+            min-height: 50px;
+            /* Ensure it's visible even when empty */
+            display: none;
+            /* Hide initially */
+        }
+
+        .interaction-feedback p {
+            margin: 0;
+            color: var(--primary-color);
+        }
+
+        .interaction-feedback strong {
+            color: var(--secondary-color);
+            font-weight: 600;
+        }
+
+        .tooltip {
+            position: absolute;
+            background-color: rgba(44, 62, 80, 0.9);
+            /* Dark blue, slightly transparent */
+            color: #ffffff;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 0.85em;
+            max-width: 250px;
+            text-align: center;
+            z-index: 1000;
+            pointer-events: none;
+            /* Tooltip itself shouldn't be clickable */
+            opacity: 0;
+            transition: opacity 0.2s ease-in-out;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        .tooltip.visible {
+            opacity: 1;
+        }
+
+        /* Optional: Triangle pointer for the tooltip */
+        .tooltip::after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            /* At the bottom of the tooltip */
+            left: 50%;
+            margin-left: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-color: rgba(44, 62, 80, 0.9) transparent transparent transparent;
+        }
+
+        .toggle-help-button {
+            display: inline-block;
+            /* Allows margin */
+            margin-top: 20px;
+            margin-bottom: 10px;
+            padding: 8px 15px;
+            background-color: var(--secondary-color);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9em;
+            font-weight: 500;
+            transition: background-color 0.2s ease;
+        }
+
+        .toggle-help-button:hover {
+            background-color: #2980b9;
+            /* Darker blue */
+        }
+
+        .specific-help-content {
+            margin-top: 10px;
+            padding: 15px;
+            background-color: #fdfdff;
+            /* Very light background */
+            border: 1px solid #e0e0ff;
+            /* Light blue/purple border */
+            border-radius: 4px;
+            display: none;
+            /* Initially hidden */
+            animation: fade 0.5s;
+            /* Reuse existing fade-in */
+        }
+
+        .specific-help-content h4 {
+            color: var(--primary-color);
+            margin-top: 0;
+            margin-bottom: 8px;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 4px;
+        }
+
+        .specific-help-content p {
+            margin-bottom: 12px;
+            font-size: 0.95em;
+        }
+
+        .specific-help-content strong {
+            color: var(--secondary-color);
+            font-weight: 600;
+        }
+
+        .specific-help-content ul {
+            margin-top: 5px;
+            margin-bottom: 12px;
+            padding-left: 25px;
+        }
+
+        .specific-help-content li {
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Interaktive Forschungsprozessmodelle</h1>
+
+        <div class="tab-navigation">
+            <button class="tab-button active" data-tab="content-analysis">Inhaltsanalyse (Rössler)</button>
+            <button class="tab-button" data-tab="survey">Befragung (Scholl)</button>
+            <button class="tab-button" data-tab="experiment">Experiment (Brosius)</button>
+        </div>
+
+        <!-- Tab: Content Analysis (Rössler) -->
+        <div id="tab-content-analysis" class="tab-content active">
+            <h2>Forschungsprozess: Inhaltsanalyse (nach Rössler)</h2>
+
+            <svg class="process-model-svg" id="roessler-svg" viewBox="0 0 650 880" xmlns="http://www.w3.org/2000/svg">
+                <!-- Definitions -->
+                <defs>
+                    <marker id="arrowhead-roessler" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"
+                        markerUnits="userSpaceOnUse">
+                        <path d="M0,0 L8,3 L0,6 Z" fill="var(--connector-color)" />
+                    </marker>
+                </defs>
+
+                <!-- Context Separators -->
+                <line class="context-separator" x1="20" y1="60" x2="630" y2="60" />
+                <line class="context-separator" x1="20" y1="780" x2="630" y2="780" />
+
+                <!-- Context Labels -->
+                <text class="process-text context-label" x="627" y="50">Entdeckungszusammenhang</text>
+                <text class="process-text context-label" x="630" y="67">Begründungszusammenhang</text>
+                <!-- Adjusted Y -->
+                <text class="process-text context-label" x="630" y="770">Begründungszusammenhang</text>
+                <text class="process-text context-label" x="628" y="787">Verwertungszusammenhang</text>
+                <!-- Adjusted Y -->
+
+                <!-- Top Level Boxes -->
+                <rect id="roessler-erkenntnisinteresse" class="process-box" x="245" y="20" width="160" height="30" />
+                <text class="process-text" x="325" y="35">Erkenntnisinteresse</text>
+                <text class="process-text label" x="150" y="10">wissenschaftlich-theoretisch</text>
+                <text class="process-text label" x="500" y="10">konkret-situativ</text>
+
+                <rect id="roessler-fundierung" class="process-box" x="70" y="80" width="160" height="40" />
+                <text class="process-text" x="150" y="100">
+                    <tspan x="150" dy="-0.5em">Fundierung</tspan>
+                    <tspan x="150" dy="1.2em">durch Theorie</tspan>
+                </text>
+
+                <rect id="roessler-forschungsstand" class="process-box" x="420" y="80" width="160" height="40" />
+                <text class="process-text" x="500" y="100">Forschungsstand</text>
+
+                <rect id="roessler-begriffe" class="process-box" x="245" y="140" width="160" height="40" />
+                <text class="process-text" x="325" y="160">
+                    <tspan x="325" dy="-0.5em">Definition zentraler</tspan>
+                    <tspan x="325" dy="1.2em">Begriffe</tspan>
+                </text>
+
+                <rect id="roessler-hypothesen" class="process-box" x="245" y="200" width="160" height="30" />
+                <text class="process-text" x="325" y="215">Hypothesenbildung</text>
+
+                <!-- Methodenwahl Container -->
+                <rect class="process-box multi-part" x="50" y="260" width="550" height="450" />
+                <text class="process-text" x="325" y="275" font-weight="bold">METHODENWAHL (Inhaltsanalyse)</text>
+
+                <!-- Inner Boxes & Phase Lines -->
+                <!-- Planungsphase -->
+                <rect id="roessler-problemstellung" class="process-box" x="70" y="300" width="150" height="40" />
+                <text class="process-text" x="145" y="320">Problemstellung</text>
+                <rect id="roessler-projektplanung" class="process-box" x="365" y="296" width="150" height="50" />
+                <text class="process-text" x="445" y="325">
+                    <tspan x="445" dy="-1.2em">Projektplanung:</tspan>
+                    <tspan x="445" dy="1.2em">Geld, Zeit, Codierer</tspan>
+                </text>
+                <line class="phase-line" x1="60" y1="370" x2="590" y2="370" />
+                <text class="process-text phase-label" x="585" y="360">Planungsphase</text>
+
+                <!-- Entwicklungsphase -->
+                <rect id="roessler-material" class="process-box" x="255" y="390" width="150" height="50" />
+                <text class="process-text" x="330" y="415">Untersuchungsmaterial</text>
+                <text class="process-text small" x="115" y="400" dy="-0.8em">(ggf. Hypo-</text>
+                <text class="process-text small" x="115" y="400" dy="0.2em">thesen-</text>
+                <text class="process-text small" x="115" y="400" dy="1.2em">Bildung)</text>
+                <rect id="roessler-analyseeinheiten" class="process-box" x="70" y="460" width="300" height="40" />
+                <text class="process-text" x="150" y="480">
+                    <tspan x="215" dy="-0.5em">Definition der</tspan>
+                    <tspan x="215" dy="1.2em">Analyseeinheiten</tspan>
+                </text>
+                <line class="phase-line" x1="60" y1="580" x2="590" y2="580" />
+                <text class="process-text phase-label" x="585" y="570">Entwicklungsphase</text>
+
+                <!-- Testphase -->
+                <rect id="roessler-kategorien" class="process-box" x="70" y="540" width="300" height="30" />
+                <text class="process-text" x="220" y="555">Kategorienbildung</text>
+                <text class="process-text label" x="190" y="518">theoriegeleitet</text>
+                <text class="process-text label" x="380" y="518">empiriegeleitet</text>
+                <rect id="roessler-probecodierung" class="process-box" x="170" y="590" width="130" height="30" />
+                <text class="process-text" x="235" y="605">Probecodierung</text>
+                <rect id="roessler-codierschulung" class="process-box" x="350" y="590" width="130" height="30" />
+                <text class="process-text" x="415" y="605">Codierschulung</text>
+                <line class="phase-line" x1="60" y1="640" x2="590" y2="640" />
+                <text class="process-text phase-label" x="585" y="630">Testphase</text>
+
+                <!-- Anwendungsphase -->
+                <rect id="roessler-codebuch" class="process-box" x="70" y="660" width="150" height="30" />
+                <text class="process-text" x="140" y="675">Codebuch</text>
+                <rect id="roessler-codierung" class="process-box" x="350" y="660" width="130" height="30" />
+                <text class="process-text" x="415" y="675">Codierung</text>
+                <!-- No line needed here, it's the end of the Methodenwahl box -->
+                <text class="process-text phase-label" x="585" y="680">Anwendungs-</text>
+                <text class="process-text phase-label" x="585" y="692">phase</text>
+
+
+                <!-- Bottom Level Boxes -->
+                <rect id="roessler-auswertung" class="process-box" x="175" y="720" width="300" height="50" />
+                <!-- Below Methodenwahl -->
+                <text class="process-text" x="325" y="745">
+                    <tspan x="325" dy="-1.2em">Auswertungsphase: Datenerfassung &</tspan>
+                    <tspan x="325" dy="1.2em">-aufbereitung; statistische Analyse</tspan>
+                </text>
+
+                <rect id="roessler-interpretation" class="process-box" x="70" y="790" width="160" height="30" />
+                <text class="process-text" x="150" y="805">Interpretation, Inferenz</text>
+                <rect id="roessler-darstellung" class="process-box" x="270" y="790" width="160" height="30" />
+                <text class="process-text" x="350" y="805">Darstellung der Ergebnisse</text>
+
+                <rect id="roessler-publikation" class="process-box" x="70" y="840" width="160" height="30" />
+                <text class="process-text" x="150" y="855">Publikationen</text>
+                <rect id="roessler-forschungsbericht" class="process-box" x="270" y="840" width="160" height="30" />
+                <text class="process-text" x="350" y="855">Forschungsbericht</text>
+
+                <!-- Arrows -->
+                <polyline class="arrow" points="220,280 150,300" marker-end="url(#arrowhead-roessler)" />
+                <!-- Methodenwahl -> Problem -->
+                <polyline class="arrow" points="420,280 445,295" marker-end="url(#arrowhead-roessler)" />
+                <!-- Methodenwahl -> Projektplanung -->
+                <polyline class="arrow" points="325,300 325,390" marker-end="url(#arrowhead-roessler)" />
+                <!-- Methodenwahl -> Material. -->
+
+                <polyline class="arrow" points="325,50 150,80" marker-end="url(#arrowhead-roessler)" />
+                <!-- Erkenntnis -> Fundierung -->
+                <polyline class="arrow" points="325,50 500,80" marker-end="url(#arrowhead-roessler)" />
+                <!-- Erkenntnis -> Forschungsstand -->
+                <polyline class="arrow" points="150,120 150,140 245,150" marker-end="url(#arrowhead-roessler)" />
+                <!-- Fundierung -> Begriffe -->
+                <polyline class="arrow" points="500,120 500,140 405,150" marker-end="url(#arrowhead-roessler)" />
+                <!-- Forschungsstand -> Begriffe -->
+                <polyline class="arrow" points="325,180 325,200" marker-end="url(#arrowhead-roessler)" />
+                <!-- Begriffe -> Hypothesen -->
+                <polyline class="arrow" points="325,230 325,260" marker-end="url(#arrowhead-roessler)" />
+                <!-- Hypothesen -> Methodenwahl -->
+
+                <!-- Arrows within Methodenwahl -->
+                <polyline class="arrow" points="145,340 145,460" marker-end="url(#arrowhead-roessler)" />
+                <!-- Problemst -> Analyseeinh -->
+                <polyline class="arrow" points="445,345 445,590" marker-end="url(#arrowhead-roessler)" />
+                <!-- Planung -> Codierschulung -->
+                <polyline class="arrow" points="325,440 325,460" marker-end="url(#arrowhead-roessler)" />
+                <!-- Material -> Analyseeinh. -->
+                <polyline class="arrow" points="325,500 325,540" marker-end="url(#arrowhead-roessler)" />
+                <!-- Analyseeinh -> Kategorien -->
+                <polyline class="arrow" points="145,500 145,540" marker-end="url(#arrowhead-roessler)" />
+                <!-- Analyseeinh -> Kategorien -->
+                <polyline class="arrow" points="235,570 235,590" marker-end="url(#arrowhead-roessler)" />
+                <!-- Kategorien -> Probecod. -->
+                <!-- <polyline class="arrow" points="325,570 325,590 415,590" marker-end="url(#arrowhead-roessler)" /> -->
+                <!-- Kategorien -> Codierschul. -->
+                <polyline class="arrow" points="145,570 145,660" marker-end="url(#arrowhead-roessler)" />
+                <!-- Kategorien -> Codebuch -->
+                <polyline class="arrow" points="235,620 145,660" marker-end="url(#arrowhead-roessler)" />
+                <!-- Probecod -> Codebuch -->
+                <polyline class="arrow" points="415,620 415,660" marker-end="url(#arrowhead-roessler)" />
+                <!-- Codierschul -> Codierung -->
+                <polyline class="arrow" points="350,605 300,605" marker-end="url(#arrowhead-roessler)" />
+                <!-- Codierschul -> Probecodierung -->
+                <polyline class="arrow" points="235,620 350,660" marker-end="url(#arrowhead-roessler)" />
+                <!-- Probecod -> Codierung -->
+
+                <!-- Arrows connecting Methodenwahl to Auswertung -->
+                <!-- <polyline class="arrow" points="145,690 145,720 175,730" marker-end="url(#arrowhead-roessler)" /> -->
+                <!-- Codebuch -> Auswertung -->
+                <polyline class="arrow" points="415,690 415,720" marker-end="url(#arrowhead-roessler)" />
+                <!-- Codierung -> Auswertung -->
+
+                <!-- Bottom Arrows -->
+                <!-- <polyline class="arrow" points="255,770 150,790" marker-end="url(#arrowhead-roessler)" /> -->
+                <!-- Auswertung -> Interpretation -->
+                <polyline class="arrow" points="350,770 350,790" marker-end="url(#arrowhead-roessler)" />
+                <!-- Auswertung -> Darstellung -->
+                <polyline class="arrow" points="230,805 270,805" marker-end="url(#arrowhead-roessler)" />
+                <!-- Interpretation -> Darstellung -->
+                <polyline class="arrow" points="350,820 350,840" marker-end="url(#arrowhead-roessler)" />
+                <!-- Darstellung -> Forschungsbericht -->
+                <polyline class="arrow" points="315,820 145,840" marker-end="url(#arrowhead-roessler)" />
+                <!-- Darstellung -> Publikationen -->
+                <!-- <polyline class="arrow" points="150,820 270,845" marker-end="url(#arrowhead-roessler)" /> -->
+                <!-- Interpretation -> Forschungsbericht -->
+
+                <!-- Feedback Loops (Curved) -->
+                <path class="arrow" d="M 30 215 Q 0 150 70 100" fill="none" marker-end="url(#arrowhead-roessler)" />
+                <!-- Hypothesen -> Fundierung -->
+                <path class="arrow" d="M 30 215 Q 0 150 245,150" fill="none" marker-end="url(#arrowhead-roessler)" />
+                <!-- Hypothesen -> Definition -->
+                <path class="arrow" d="M 30 215 Q 0 150 245,215" fill="none" marker-end="url(#arrowhead-roessler)" />
+                <!-- Hypothesen -> Hypothesen -->
+                <path class="arrow" d="M 30 215 Q -20 500 70 805" fill="none" marker-end="url(#arrowhead-roessler)" />
+                <!-- Hypothesen -> Interpretation -->
+                <!-- <path class="arrow" d="M 60 415 Q 40 300 245 215" fill="none" marker-end="url(#arrowhead-roessler)" /> -->
+                <!-- Material -> Hypothesen -->
+
+                <!-- Dashed Arrow: Erkenntnisinteresse -> Publikationen -->
+                <polyline class="arrow" points="245,35 5,35 5,860 70,860" stroke-dasharray="5, 3" fill="none"
+                    marker-end="url(#arrowhead-roessler)" />
+
+            </svg>
+
+            <div class="interaction-feedback" id="roessler-feedback">
+                <p><strong id="roessler-feedback-title"></strong> <span id="roessler-feedback-text"></span></p>
+            </div>
+
+            <button class="toggle-help-button" data-group="content-analysis">KI-Generierte Hilfestellung für Gruppe Inhaltsanalyse
+                anzeigen</button>
+            <div class="specific-help-content" id="help-content-analysis">
+                <h4>Anwendung des Rössler-Modells auf euer Projekt: "Darstellung von Politikern in KI-generierten
+                    Videos"</h4>
+
+                <p>Euer Projekt passt gut zur qualitativen Inhaltsanalyse. Hier sind Ansatzpunkte, wie ihr die Schritte
+                    des Modells auf euer Thema anwenden könnt:</p>
+
+                <p><strong>Erkenntnisinteresse:</strong> Euer Interesse liegt darin zu verstehen, <em>wie</em>
+                    politische Akteure in einer neuen, potenziell irreführenden Technologie (KI-Videos) dargestellt
+                    werden, welche Stereotypen bedient und welche Formen gesellschaftlicher Kritik geäußert werden. Es
+                    ist sowohl wissenschaftlich-theoretisch (Verständnis von Satire, Stereotypen, KI-Wirkung) als auch
+                    konkret-situativ (aktuelle Flut solcher Videos, Wahlkontexte).</p>
+
+                <p><strong>Fundierung durch Theorie / Forschungsstand:</strong> Bezieht euch auf Theorien zu politischer
+                    Satire, Stereotypenforschung, visueller Kommunikation, Framing, ggf. Theorien zur Medienwirkung
+                    (z.B. Kultivierung) und zum Einfluss von Desinformation/Deepfakes. Recherchiert den Stand zu
+                    KI-generierten Medieninhalten, Deepfake-Erkennung und -Wirkung, Satire auf Social Media (insb.
+                    TikTok/Instagram).</p>
+
+                <p><strong>Definition zentraler Begriffe:</strong> Definiert klar: Was versteht ihr unter
+                    "KI-generiertem Video" (Deepfake, Voice Cloning etc.)? Was ist "satirisch"? Was sind "politische
+                    Rollenklischees" in eurem Kontext? Wie definiert ihr "gesellschaftliche Kritik", "Übertreibung",
+                    "Absurdität", "Ironie"? Was bedeutet "visueller Fortschritt/Qualität"?</p>
+
+                <p><strong>Hypothesenbildung:</strong> Eure H1 (Reproduktion von Klischees) und H2 (Kritik durch
+                    Übertreibung/Absurdität) sind gute Arbeitshypothesen für eine qualitative Analyse. Ihr prüft sie
+                    nicht statistisch, sondern sucht nach Mustern und Belegen im Material, die sie stützen oder
+                    widerlegen. Die Frage nach der Veränderung der Glaubwürdigkeit/Qualität über die Zeit ist eher eine
+                    explorative Fragestellung.</p>
+
+                <p><strong>Methodenwahl (Inhaltsanalyse):</strong>
+                <ul>
+                    <li><strong>Problemstellung:</strong> Eure Forschungsfrage ist die konkrete Problemstellung.</li>
+                    <li><strong>Projektplanung:</strong> Zeitplan erstellen, Aufgaben verteilen (wer sucht Videos, wer
+                        codiert, wer wertet aus?).</li>
+                    <li><strong>Untersuchungsmaterial:</strong> Ihr habt TikTok/Instagram als Quellen definiert (je 100
+                        Videos). Präzisiert den Such-/Auswahlprozess: Welche Suchbegriffe? Welcher Zeitraum (wichtig für
+                        Zeitvergleich)? Wie geht ihr mit Mehrfachposts um? Wie stellt ihr sicher, dass es wirklich
+                        KI-generiert und satirisch ist (Inklusions-/Exklusionskriterien)? 10.000 Views als Kriterium ist
+                        gut.</li>
+                    <li><strong>Definition der Analyseeinheiten:</strong> Eure Analyseeinheit ist das einzelne Video
+                        (TikTok oder Instagram Reel).</li>
+                    <li><strong>Kategorienbildung (Zentral!):</strong> Das Herzstück eurer Arbeit. Entwickelt ein
+                        Kategoriensystem (Codebuch), das eure Hypothesen und Fragestellungen abdeckt. Mögliche
+                        Hauptkategorien:
+                        <ul>
+                            <li>Dargestellte/r Politiker:in</li>
+                            <li>Thema des Videos</li>
+                            <li>Art der KI-Nutzung (visuell, auditiv)</li>
+                            <li>Visuelle/Technische Qualität (ggf. Skala)</li>
+                            <li>Satirische Mittel (Übertreibung, Absurdität, Ironie, Parodie...) -> <em>Wichtig für
+                                    H2</em></li>
+                            <li>Dargestellte politische Rollen/Klischees (Macht, Inkompetenz, Korruption...) ->
+                                <em>Wichtig für H1</em>
+                            </li>
+                            <li>Form der geäußerten Kritik (explizit, implizit)</li>
+                            <li>Gesamte Tonalität (humorvoll, aggressiv, kritisch...)</li>
+                            <li>Plattformspezifische Merkmale (Musik, Effekte...)</li>
+                            <li>Veröffentlichungsdatum (für Zeitvergleich)</li>
+                        </ul>
+                        Entwickelt die Kategorien sowohl deduktiv (aus Theorie/Hypothesen) als auch induktiv (aus dem
+                        Material selbst).
+                    </li>
+                    <li><strong>Probecodierung:</strong> Testet euer vorläufiges Codebuch an ca. 10-20 Videos. Codiert
+                        unabhängig voneinander und vergleicht die Ergebnisse. Wo gibt es Unklarheiten? Müssen Kategorien
+                        angepasst werden?</li>
+                    <li><strong>Codierschulung:</strong> Stellt sicher, dass alle Codierer die Kategorien gleich
+                        verstehen und anwenden. Dokumentiert Entscheidungen. Berechnet Intercoder-Reliabilität für
+                        einige Variablen.</li>
+                    <li><strong>Codebuch:</strong> Finalisiert das Codebuch mit klaren Definitionen, Ankerbeispielen und
+                        Codierregeln.</li>
+                    <li><strong>Codierung:</strong> Wendet das finale Codebuch auf alle 200 Videos an.</li>
+                </ul>
+                </p>
+
+                <p><strong>Auswertungsphase:</strong> Da es qualitativ ist, geht es weniger um Statistik als um
+                    Mustererkennung. Zählt Häufigkeiten von Kategorien (z.B. welche Klischees sind dominant? Welche
+                    satirischen Mittel?). Identifiziert typische Darstellungsmuster. Vergleicht ggf. TikTok vs.
+                    Instagram. Stellt Zusammenhänge her (z.B. werden bestimmte Klischees oft mit bestimmten satirischen
+                    Mitteln kombiniert?). Analysiert Beispiele detailliert, um eure Muster zu illustrieren.</p>
+
+                <p><strong>Interpretation, Inferenz:</strong> Was bedeuten eure gefundenen Muster im Hinblick auf eure
+                    Forschungsfrage und Hypothesen? Bestätigen sie eure Annahmen? Welche neuen Erkenntnisse habt ihr
+                    gewonnen? Welche Rolle spielt diese Form der Satire im politischen Diskurs?</p>
+
+                <p><strong>Darstellung / Bericht / Publikation:</strong> Strukturiert eure Arbeit nach dem
+                    Forschungsprozess. Beschreibt euer Vorgehen (v.a. Materialauswahl, Codebuch) detailliert.
+                    Präsentiert eure Ergebnisse nachvollziehbar (ggf. mit Häufigkeitstabellen, aber v.a. mit
+                    beschriebenen Mustern und prägnanten Beispielen/Screenshots).</p>
+            </div>
+
+        </div>
+
+        <!-- Tab: Survey (Scholl) -->
+        <div id="tab-survey" class="tab-content">
+            <h2>Forschungsprozess: Standardisierte Untersuchung (Befragung nach Scholl)</h2>
+
+            <svg class="process-model-svg" id="scholl-svg" viewBox="0 0 600 780" xmlns="http://www.w3.org/2000/svg">
+                <!-- Definitions -->
+                <defs>
+                    <marker id="arrowhead-scholl" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"
+                        markerUnits="userSpaceOnUse">
+                        <path d="M0,0 L8,3 L0,6 Z" fill="var(--connector-color)" />
+                    </marker>
+                    <!-- No start marker needed for loops 1 & 2 -->
+                </defs>
+
+                <!-- BOX POSITIONS & SIZES - Achieving Symmetry -->
+                <!-- Central Axis around x=300 -->
+                <!-- Box Widths (adjust as needed for text, keep symmetrical ones same) -->
+                <!-- Example: Konzept/Grundg = 180, Methode/Auswahl = 180, Operation/Auswahl = 180 -->
+                <!-- Standard Box Height: 40 or 50/60 for multi-line -->
+
+                <rect id="scholl-fragestellung" class="process-box" x="200" y="20" width="200" height="40" />
+                <rect id="scholl-konzeptualisierung" class="process-box" x="200" y="100" width="200" height="60" />
+
+                <!-- Level 1 Symmetry -->
+                <rect id="scholl-methode" class="process-box" x="80" y="200" width="180" height="50" />
+                <rect id="scholl-grundgesamtheit" class="process-box" x="340" y="200" width="180" height="40" />
+                <!-- Aligned with Methode -->
+
+                <!-- Level 2 Symmetry -->
+                <rect id="scholl-operationalisierung" class="process-box" x="80" y="290" width="180" height="50" />
+                <rect id="scholl-auswahl" class="process-box" x="340" y="290" width="180" height="50" />
+                <!-- Aligned with Operationalisierung -->
+
+
+                <rect id="scholl-pretest" class="process-box" x="250" y="380" width="100" height="30" />
+                <!-- Centered -->
+
+                <rect id="scholl-hauptuntersuchung" class="process-box" x="200" y="450" width="200" height="40" />
+                <rect id="scholl-aufbereitung" class="process-box" x="200" y="530" width="200" height="50" />
+                <rect id="scholl-auswertung" class="process-box" x="200" y="620" width="200" height="50" />
+                <rect id="scholl-datenpraesentation" class="process-box" x="200" y="710" width="200" height="30" />
+
+
+                <!-- TEXT POSITIONS -->
+                <text class="process-text" x="300" y="40">
+                    <tspan x="300" dy="-0.5em">Fragestellung/</tspan>
+                    <tspan x="300" dy="1.2em">Problemformulierung</tspan>
+                </text>
+                <text class="process-text" x="300" y="130">
+                    <tspan x="300" dy="-1.2em">Konzeptualisierung</tspan>
+                    <tspan x="300" dy="1.2em" class="small">(eventuell mit Hypothesen</tspan>
+                    <tspan x="300" dy="1.2em" class="small">oder Theorie)</tspan>
+                </text>
+                <text class="process-text" x="170" y="225"> <!-- Text for Methode -->
+                    <tspan x="170" dy="-0.5em">Wahl der Methode</tspan>
+                    <tspan x="170" dy="1.2em" class="small">(hier: Befragung)</tspan>
+                </text>
+                <text class="process-text" x="430" y="220">Definition der Grundgesamtheit</text>
+                <!-- Text for Grundgesamtheit -->
+
+                <text class="process-text" x="170" y="315"> <!-- Text for Operationalisierung -->
+                    <tspan x="170" dy="-0.5em">Operationalisierung</tspan>
+                    <tspan x="170" dy="1.2em" class="small">(hier: Fragebogen)</tspan>
+                </text>
+                <text class="process-text" x="430" y="307"> <!-- Text for Auswahl -->
+                    <tspan x="430" dy="-0.5em">Auswahl der</tspan>
+                    <tspan x="430" dy="1.2em">Untersuchungsfälle</tspan>
+                    <tspan x="430" dy="1.2em" class="small">(hier: Befragte)</tspan>
+                </text>
+
+                <text class="process-text" x="300" y="395">Pretest</text>
+                <text class="process-text" x="300" y="470">
+                    <tspan x="300" dy="-0.5em">Hauptuntersuchung</tspan>
+                    <tspan x="300" dy="1.2em" class="small">(Datenerhebung)</tspan>
+                </text>
+                <text class="process-text" x="300" y="555">
+                    <tspan x="300" dy="-1.2em">Datenaufbereitung</tspan>
+                    <tspan x="300" dy="1.2em" class="small">(Datenerfassung und</tspan>
+                    <tspan x="300" dy="1.2em" class="small">Datenbereinigung)</tspan>
+                </text>
+                <text class="process-text" x="300" y="645">
+                    <tspan x="300" dy="-0.5em">Datenauswertung</tspan>
+                    <tspan x="300" dy="1.2em" class="small">(inklusive Datenmodifikation)</tspan>
+                </text>
+                <text class="process-text" x="300" y="725">Datenpräsentation</text>
+
+
+                <!-- ARROWS - Corrected Paths -->
+                <polyline class="arrow" points="300,60 300,100" marker-end="url(#arrowhead-scholl)" />
+                <!-- Frage -> Konzeptualisierung -->
+
+                <polyline class="arrow" points="300,160 170,200" marker-end="url(#arrowhead-scholl)" />
+                <!-- Konzept -> Methode -->
+                <polyline class="arrow" points="300,160 430,200" marker-end="url(#arrowhead-scholl)" />
+                <!-- Konzept -> Grundgesamtheit -->
+
+                <polyline class="arrow" points="430,240 430,290" marker-end="url(#arrowhead-scholl)" />
+                <!-- Grundges -> Auswahl -->
+                <polyline class="arrow" points="170,250 170,290" marker-end="url(#arrowhead-scholl)" />
+                <!-- Methode -> Operation. -->
+
+                <polyline class="arrow" points="430,340 430,370 350,395" marker-end="url(#arrowhead-scholl)" />
+                <!-- Auswahl -> Pretest -->
+                <polyline class="arrow" points="170,340 170,370 250,395" marker-end="url(#arrowhead-scholl)" />
+                <!-- Operation. -> Pretest -->
+
+                <polyline class="arrow" points="300,410 300,450" marker-end="url(#arrowhead-scholl)" />
+                <!-- Pretest -> Hauptuntersuchung -->
+                <polyline class="arrow" points="300,490 300,530" marker-end="url(#arrowhead-scholl)" />
+                <!-- Hauptuntersuchung -> Aufbereitung -->
+                <polyline class="arrow" points="300,580 300,620" marker-end="url(#arrowhead-scholl)" />
+                <!-- Aufbereitung -> Auswertung -->
+                <polyline class="arrow" points="300,670 300,710" marker-end="url(#arrowhead-scholl)" />
+                <!-- Auswertung -> Datenpräsentation -->
+
+
+                <!-- FEEDBACK LOOPS (CURVED) - Corrected Direction & Markers -->
+
+                <!-- Loop (1): Datenauswertung -> Fragestellung -->
+                <path class="arrow" d="M 200,645 C -50,550 -20,100 200,40" stroke-width="1.5" fill="none"
+                    marker-end="url(#arrowhead-scholl)" /> <!-- ONLY marker-end -->
+                <text class="process-text small" x="60" y="140">(1)</text>
+
+                <!-- Loop (2): Datenauswertung -> Konzeptualisierung -->
+                <path class="arrow" d="M 200,640 C 50,500 50,200 200,130" stroke-width="1.5" fill="none"
+                    marker-end="url(#arrowhead-scholl)" /> <!-- ONLY marker-end -->
+                <text class="process-text small" x="130" y="170">(2)</text>
+
+                <!-- Loop (3): Pretest -> Operationalisierung -->
+                <path class="arrow" d="M 250,395 C 220,370 190,360 170,340" fill="none" stroke-width="1.5"
+                    marker-end="url(#arrowhead-scholl)" /> <!-- ONLY marker-end -->
+                <text class="process-text small" x="235" y="355">(3)</text>
+
+
+            </svg>
+
+            <div class="interaction-feedback" id="scholl-feedback">
+                <p><strong id="scholl-feedback-title"></strong> <span id="scholl-feedback-text"></span></p>
+            </div>
+
+            <button class="toggle-help-button" data-group="survey">KI-Generierte Hilfestellung für Gruppe Befragung anzeigen</button>
+            <div class="specific-help-content" id="help-survey">
+                <h4>Anwendung des Scholl-Modells auf euer Projekt: "Einfluss von KI auf Arbeitszufriedenheit und
+                    -sicherheit"</h4>
+
+                <p>Euer Projekt verwendet eine standardisierte Befragung, um Zusammenhänge zwischen KI-Nutzung und
+                    Mitarbeiterwahrnehmungen zu untersuchen. Das Scholl-Modell passt hier gut:</p>
+
+                <p><strong>Fragestellung/Problemformulierung:</strong> Eure Forschungsfrage ist klar formuliert: "Wie
+                    beeinflusst der Einsatz von künstlicher Intelligenz die Arbeitszufriedenheit und
+                    Arbeitsplatzsicherheit in unterschiedlichen Berufsgruppen?“</p>
+
+                <p><strong>Konzeptualisierung:</strong>
+                <ul>
+                    <li>Definiert die zentralen Konzepte: Was genau versteht ihr unter "Künstliche Intelligenz" im
+                        Arbeitskontext (z.B. Automatisierung, Assistenzsysteme, Analysewerkzeuge)? Wie definiert ihr
+                        "Arbeitszufriedenheit" (global vs. facettenspezifisch?) und "Arbeitsplatzsicherheit" (objektiv
+                        vs. subjektiv wahrgenommen)? Welche Dimensionen sind relevant?</li>
+                    <li>Formuliert spezifische Hypothesen. Beispiele könnten sein:
+                        <ul>
+                            <li>H1: Eine höhere wahrgenommene KI-Nutzung in Routinetätigkeiten korreliert negativ mit
+                                der wahrgenommenen Arbeitsplatzsicherheit in der Verwaltungsgruppe.</li>
+                            <li>H2: Der Einsatz von KI als unterstützendes Werkzeug korreliert positiv mit der
+                                Arbeitszufriedenheit in der IT-Gruppe.</li>
+                            <li>H3: Es gibt signifikante Unterschiede in der Arbeitszufriedenheit zwischen den vier
+                                Berufsgruppen (Pflege, IT, Verwaltung, Bildung) in Bezug auf den KI-Einsatz.</li>
+                        </ul>
+                    </li>
+                    <li>Begründet eure Hypothesen theoretisch (z.B. Job Demands-Resources Model, Theorien zur
+                        Technologieakzeptanz, Skill-Biased Technical Change).</li>
+                </ul>
+                </p>
+
+                <p><strong>Wahl der Methode:</strong> Ihr habt euch für eine Online-Befragung (standardisiert mit
+                    geschlossenen Fragen, ggf. ergänzt um offene Fragen für qualitative Einblicke - Mixed Methods
+                    angedeutet) entschieden. Das ist passend für die Erhebung von Einstellungen und Wahrnehmungen bei
+                    einer größeren Stichprobe.</p>
+
+                <p><strong>Definition der Grundgesamtheit:</strong> Berufstätige in Deutschland in den Bereichen Pflege,
+                    IT, Verwaltung, Bildung. Das ist eine sehr breite Definition. Seid euch bewusst, dass eure
+                    Stichprobe wahrscheinlich nicht repräsentativ für diese gesamte GG sein wird.</p>
+
+                <p><strong>Operationalisierung (Zentral!):</strong> Das ist die Übersetzung eurer Konzepte in konkrete
+                    Fragebogen-Items:
+                <ul>
+                    <li><em>KI-Nutzung/Exposition:</em> Wie messt ihr das? Fragen nach Häufigkeit der Nutzung von
+                        KI-Tools? Nach spezifischen Tools? Nach dem Ausmaß, in dem KI bestimmte Aufgaben beeinflusst?
+                        (z.B. Skala von "gar nicht" bis "sehr stark").</li>
+                    <li><em>Arbeitszufriedenheit:</em> Verwendet etablierte Skalen (z.B. Ausschnitte aus dem Job
+                        Descriptive Index, Minnesota Satisfaction Questionnaire) oder entwickelt eigene Likert-Skalen
+                        (z.B. "Ich bin mit meiner Arbeit insgesamt zufrieden", "Meine Arbeit macht mir Spaß").</li>
+                    <li><em>Arbeitsplatzsicherheit (wahrgenommen):</em> Likert-Skalen (z.B. "Ich mache mir Sorgen, dass
+                        KI meinen Arbeitsplatz gefährden könnte", "Ich fühle mich sicher in meiner aktuellen Position").
+                    </li>
+                    <li><em>Berufsgruppe:</em> Direkte Abfrage (ggf. mit Unterkategorien, falls nötig).</li>
+                    <li><em>Kontrollvariablen:</em> Alter, Geschlecht, Bildungsgrad, Berufserfahrung, Unternehmensgröße
+                        könnten relevant sein.</li>
+                    <li><em>Offene Fragen:</em> Falls ihr qualitative Einblicke wollt (z.B. "Welche Chancen/Risiken
+                        sehen Sie persönlich durch KI in Ihrem Beruf?").</li>
+                </ul>
+                </p>
+
+                <p><strong>Auswahl der Untersuchungsfälle:</strong> Ihr plant eine Stichprobe von 150-180 Personen über
+                    berufliche/soziale Netzwerke (Convenience/Snowball Sampling). Dokumentiert genau, wie ihr vorgeht.
+                    Versucht, die vier Berufsgruppen einigermaßen ausgewogen zu erreichen. Nennt die Limitationen dieser
+                    nicht-zufälligen Auswahlmethode (eingeschränkte Generalisierbarkeit).</p>
+
+                <p><strong>Pretest:</strong> Unbedingt durchführen! Testet den Fragebogen (auf SoSci Survey) mit ca.
+                    5-10 Personen (idealerweise aus euren Zielgruppen): Ist alles verständlich? Ist die Länge
+                    angemessen? Funktionieren alle Fragen/Filter? Dauert wie lange?</p>
+
+                <p><strong>Hauptuntersuchung (Datenerhebung):</strong> Verbreitet den Link zum Online-Fragebogen. Setzt
+                    eine realistische Frist. Achtet auf Anonymität und Datenschutz.</p>
+
+                <p><strong>Datenaufbereitung:</strong> Ladet die Daten von SoSci Survey herunter. Prüft auf Fehler (z.B.
+                    unplausible Werte, Muster bei Antworten). Entscheidet, wie ihr mit fehlenden Werten umgeht.
+                    Berechnet ggf. Skalenwerte (z.B. Mittelwerte für Zufriedenheitsskala).</p>
+
+                <p><strong>Datenauswertung:</strong>
+                <ul>
+                    <li><em>Deskriptive Statistik:</em> Beschreibt eure Stichprobe (Alter, Geschlecht,
+                        Berufsgruppenverteilung etc.). Zeigt Mittelwerte und Verteilungen für eure Hauptvariablen
+                        (KI-Nutzung, Zufriedenheit, Sicherheit).</li>
+                    <li><em>Inferenzstatistik (Hypothesentest):</em>
+                        <ul>
+                            <li>Vergleiche zwischen den Berufsgruppen (z.B. mit ANOVA oder t-Tests) bezüglich
+                                Zufriedenheit, Sicherheit, KI-Nutzung.</li>
+                            <li>Korrelationen zwischen KI-Nutzung und Zufriedenheit/Sicherheit (gesamt und pro Gruppe).
+                            </li>
+                            <li>Ggf. Regressionsanalysen, um den Einfluss von KI auf Zufriedenheit/Sicherheit unter
+                                Kontrolle anderer Variablen zu prüfen.</li>
+                        </ul>
+                    </li>
+                    <li><em>Qualitative Analyse:</em> Wenn ihr offene Fragen habt, wertet diese thematisch aus (z.B.
+                        durch Kategorisierung der Antworten).</li>
+                </ul>
+                </p>
+
+                <p><strong>Datenpräsentation:</strong> Stellt eure Ergebnisse klar und übersichtlich dar (Tabellen für
+                    Demografie und Mittelwerte/Korrelationen, ggf. Grafiken wie Balkendiagramme). Bezieht die Ergebnisse
+                    auf eure Hypothesen und die Forschungsfrage. Diskutiert die Implikationen und Limitationen.</p>
+
+                <p><strong>Feedback Loops:</strong> Denkt daran, dass Ergebnisse (z.B. unerwartete Korrelationen in der
+                    Auswertung) dazu führen können, dass ihr eure ursprüngliche Konzeptualisierung oder sogar die
+                    Fragestellung überdenkt (Loop 1 & 2). Der Pretest führt oft direkt zu Anpassungen bei der
+                    Operationalisierung (Fragebogen, Loop 3).</p>
+            </div>
+
+        </div>
+
+        <!-- Tab: Experiment (Brosius) -->
+        <div id="tab-experiment" class="tab-content">
+            <h2>Forschungsprozess: Experiment (nach Brosius et al.)</h2>
+
+            <svg class="process-model-svg" id="brosius-svg" viewBox="0 0 500 780" xmlns="http://www.w3.org/2000/svg">
+                <!-- Definitions -->
+                <defs>
+                    <marker id="arrowhead-brosius" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"
+                        markerUnits="userSpaceOnUse">
+                        <path d="M0,0 L8,3 L0,6 Z" fill="var(--connector-color)" />
+                    </marker>
+                    <marker id="arrowhead-brosius-start" markerWidth="8" markerHeight="6" refX="0" refY="3"
+                        orient="auto" markerUnits="userSpaceOnUse">
+                        <path d="M8,0 L0,3 L8,6 Z" fill="var(--connector-color)" />
+                    </marker>
+                </defs>
+
+                <!-- Context Separators -->
+                <line class="context-separator" x1="20" y1="145" x2="480" y2="145" />
+                <line class="context-separator" x1="20" y1="720" x2="480" y2="720" />
+
+                <!-- Context Labels -->
+                <text class="process-text context-label" x="480" y="120">Entdeckungs-</text>
+                <text class="process-text context-label" x="480" y="133">zusammenhang</text>
+                <text class="process-text context-label" x="480" y="675">Begründungs-</text>
+                <text class="process-text context-label" x="480" y="688">zusammenhang</text>
+                <text class="process-text context-label" x="480" y="760">Verwertungs-</text>
+                <text class="process-text context-label" x="480" y="773">zusammenhang</text>
+
+                <!-- Side Label & Arrow -->
+                <line class="arrow" x1="80" y1="45" x2="80" y2="695" stroke-width="1.5" />
+                <text class="process-text rotated" x="65" y="370" transform="rotate(-90, 65, 370)">Lösung des sozialen
+                    Problems</text>
+
+                <!-- Small connector lines from vertical arrow -->
+                <line class="arrow" x1="80" y1="45" x2="100" y2="45" stroke-width="1"
+                    marker-end="url(#arrowhead-brosius)" /> <!-- To Phänomen -->
+                <line class="arrow" x1="80" y1="200" x2="160" y2="200" stroke-width="1"
+                    marker-end="url(#arrowhead-brosius)" /> <!-- To Fundierung -->
+                <line class="arrow" x1="80" y1="355" x2="160" y2="355" stroke-width="1"
+                    marker-end="url(#arrowhead-brosius)" /> <!-- To Hypothesenbildung -->
+                <line class="arrow" x1="80" y1="695" x2="160" y2="695" stroke-width="1" />
+                <!-- To Ergebnisdarstellung -->
+
+
+                <!-- Boxes -->
+                <rect id="brosius-phaenomen" class="process-box" x="100" y="20" width="140" height="50" />
+                <text class="process-text" x="170" y="45">
+                    <tspan x="170" dy="-0.5em">Phänomen aus</tspan>
+                    <tspan x="170" dy="1.2em">sozialer Realität</tspan>
+                </text>
+
+                <rect id="brosius-auftrag" class="process-box" x="260" y="20" width="140" height="50" />
+                <text class="process-text" x="330" y="45">
+                    <tspan x="330" dy="-0.5em">Auftrag: kommerziell,</tspan>
+                    <tspan x="330" dy="1.2em">selbstgestellt</tspan>
+                </text>
+
+                <rect id="brosius-fragestellung" class="process-box" x="160" y="90" width="180" height="40" />
+                <text class="process-text" x="250" y="110">
+                    <tspan x="250" dy="-0.5em">wissenschaftliche</tspan>
+                    <tspan x="250" dy="1.2em">Fragestellung</tspan>
+                </text>
+
+                <rect id="brosius-fundierung" class="process-box" x="160" y="160" width="180" height="80" />
+                <text class="process-text small" x="250" y="200">
+                    <tspan x="250" dy="-2.4em">Fundierung der</tspan>
+                    <tspan x="250" dy="1.2em">Fragestellung durch</tspan>
+                    <tspan x="250" dy="1.2em">geeignete Theorie,</tspan>
+                    <tspan x="250" dy="1.2em">Darstellung des For-</tspan> <!-- Avoided manual hyphen -->
+                    <tspan x="250" dy="1.2em">schungsgegenstandes</tspan>
+                </text>
+
+                <rect id="brosius-begriffe" class="process-box" x="160" y="270" width="180" height="40" />
+                <text class="process-text" x="250" y="290">
+                    <tspan x="250" dy="-0.5em">Definition der</tspan>
+                    <tspan x="250" dy="1.2em">zentralen Begriffe</tspan>
+                </text>
+
+                <rect id="brosius-hypothesen" class="process-box" x="160" y="340" width="180" height="30" />
+                <text class="process-text" x="250" y="355">Hypothesenbildung</text>
+
+                <!-- Konzeption Box with Dashed Border -->
+                <g>
+                    <rect id="brosius-konzeption" class="process-box" x="160" y="400" width="180" height="70" />
+                    <text class="process-text small" x="250" y="435">
+                        <tspan x="250" dy="-2.4em" style="font-size: var(--svg-text-size); font-weight:bold;">Konzeption
+                            der</tspan>
+                        <tspan x="250" dy="1.2em" style="font-size: var(--svg-text-size); font-weight:bold;">
+                            Untersuchung:</tspan>
+                        <tspan x="250" dy="1.4em">Wahl der Methode</tspan>
+                        <tspan x="250" dy="1.2em">Wahl der Messung</tspan>
+                        <tspan x="250" dy="1.2em">Wahl der Untersuchungsanlage</tspan>
+                    </text>
+                    <!-- Dashed border *around* the konzeption box -->
+                    <rect class="process-box dashed-border" x="155" y="395" width="190" height="80" />
+                </g>
+
+
+                <rect id="brosius-indikatoren" class="process-box" x="160" y="500" width="180" height="30" />
+                <text class="process-text" x="250" y="515">Indikatorenbildung</text>
+
+                <rect id="brosius-datenerhebung" class="process-box" x="160" y="560" width="180" height="30" />
+                <text class="process-text" x="250" y="575">Datenerhebung</text>
+
+                <rect id="brosius-datenanalyse" class="process-box" x="160" y="620" width="180" height="30" />
+                <text class="process-text" x="250" y="635">Datenanalyse</text>
+
+                <rect id="brosius-ergebnisdarstellung" class="process-box" x="160" y="680" width="180" height="30" />
+                <text class="process-text" x="250" y="695">Ergebnisdarstellung</text>
+
+                <rect id="brosius-bericht" class="process-box" x="160" y="730" width="180" height="30" />
+                <text class="process-text" x="250" y="745">Bericht, Publikation</text>
+
+                <!-- Arrows -->
+                <polyline class="arrow" points="170,70 170, 90" marker-end="url(#arrowhead-brosius)" />
+                <!-- Phänomen -> Frage -->
+                <polyline class="arrow" points="330,70 330, 90" marker-end="url(#arrowhead-brosius)" />
+                <!-- Auftrag -> Frage -->
+                <polyline class="arrow" points="250,130 250,160" marker-end="url(#arrowhead-brosius)" />
+                <!-- Frage -> Fundierung -->
+                <polyline class="arrow" points="250,240 250,270" marker-end="url(#arrowhead-brosius)" />
+                <!-- Fundierung -> Begriffe -->
+                <polyline class="arrow" points="250,310 250,340" marker-end="url(#arrowhead-brosius)" />
+                <!-- Begriffe -> Hypothesen -->
+                <polyline class="arrow" points="250,370 250,400" marker-end="url(#arrowhead-brosius)" />
+                <!-- Hypothesen -> Konzeption -->
+                <polyline class="arrow" points="250,470 250,500" marker-end="url(#arrowhead-brosius)" />
+                <!-- Konzeption -> Indikatoren -->
+                <polyline class="arrow" points="250,530 250,560" marker-end="url(#arrowhead-brosius)" />
+                <!-- Indikatoren -> Datenerhebung -->
+                <polyline class="arrow" points="250,590 250,620" marker-end="url(#arrowhead-brosius)" />
+                <!-- Datenerhebung -> Datenanalyse -->
+                <polyline class="arrow" points="250,650 250,680" marker-end="url(#arrowhead-brosius)" />
+                <!-- Datenanalyse -> Ergebnisdarst. -->
+                <polyline class="arrow" points="250,710 250,730" marker-end="url(#arrowhead-brosius)" />
+                <!-- Ergebnisdarst. -> Bericht -->
+
+                <!-- Feedback Loop (Curved) - Revised based on original B&W image -->
+                <!-- Starts after Hypothesenbildung, goes back up to Fundierung -->
+                <!-- <path class="arrow" d="M 160 360 C 120 300, 120 250, 160 200" fill="none"
+                    marker-end="url(#arrowhead-brosius)" stroke-width="1.5" /> -->
+
+            </svg>
+
+            <div class="interaction-feedback" id="brosius-feedback">
+                <p><strong id="brosius-feedback-title"></strong> <span id="brosius-feedback-text"></span></p>
+            </div>
+
+            <button class="toggle-help-button" data-group="experiment">KI-Generierte Hilfestellung für Gruppe Experiment
+                anzeigen</button>
+            <div class="specific-help-content" id="help-experiment">
+                <h4>Anwendung des Brosius-Modells auf euer Projekt: "Auswirkungen KI-generierter Instagram-Beiträge auf
+                    die Reputation"</h4>
+
+                <p>Euer Vorhaben ist ein klassisches Experiment, das die Wirkung einer Manipulation (Kennzeichnung) auf
+                    verschiedene abhängige Variablen untersucht. Das Brosius-Modell leitet euch durch die Planung:</p>
+
+                <p><strong>Phänomen aus sozialer Realität / Auftrag:</strong> Das Phänomen ist der zunehmende Einsatz
+                    von KI im Journalismus (speziell Social Media) und die gesellschaftliche/regulatorische Debatte um
+                    Kennzeichnung (EU AI Act). Euer Auftrag ist wissenschaftliches Interesse an den Wirkungen dieser
+                    Kennzeichnung.</p>
+
+                <p><strong>Wissenschaftliche Fragestellung:</strong> Kernfrage: Wie wirkt sich die explizite
+                    Kennzeichnung ("Labeling") von KI-generierten Instagram-Beiträgen (am Beispiel Tagesschau) auf die
+                    Wahrnehmung von Glaubwürdigkeit, Authentizität, die Reputation des Mediums und die
+                    Interaktionsbereitschaft der Nutzer aus? Unterscheidet sich diese Wirkung je nach Themenbereich
+                    (Politik, Wissenschaft, Sport, Popkultur)?</p>
+
+                <p><strong>Fundierung der Fragestellung:</strong> Baut auf Theorien zur Medienwirkung (z.B. ELM),
+                    Glaubwürdigkeitsforschung (Source Credibility, Message Credibility), Authentizitätswahrnehmung,
+                    Reputationsmanagement und der Wirkung von Transparenz/Disclosure auf. Recherchiert Studien zu
+                    automatisiertem Journalismus, Publikumsakzeptanz von KI-Inhalten und Effekten von Labeling.</p>
+
+                <p><strong>Definition der zentralen Begriffe:</strong> Definiert klar: Was ist ein "KI-generierter
+                    Instagram-Beitrag" in eurem Stimulusmaterial? Wie sieht die "Kennzeichnung" konkret aus?
+                    Operationalisiert "Glaubwürdigkeit" (z.B. als mehrdimensionales Konstrukt: Expertise,
+                    Vertrauenswürdigkeit), "Authentizität", "Reputation" (der Tagesschau als Marke),
+                    "Interaktionsaffinität" (Bereitschaft zu Like/Share/Comment). Definiert die "Themenbereiche".</p>
+
+                <p><strong>Hypothesenbildung:</strong> Ihr habt klare Hypothesen (H1-H4):
+                <ul>
+                    <li>H1: Labeling -> geringere Glaubwürdigkeit</li>
+                    <li>H2: Labeling -> geringere Authentizität</li>
+                    <li>H3: Labeling -> geringere Reputation (der Tagesschau)</li>
+                    <li>H4: Akzeptanz (vermutlich operationalisiert über Glaubwürdigkeit/Authentizität/Reputation) von
+                        gelabelten Beiträgen ist bei Politik/Wissenschaft niedriger als bei Sport/Popkultur
+                        (Interaktionshypothese!).</li>
+                </ul>
+                </p>
+
+                <p><strong>Konzeption der Untersuchung (Zentral!):</strong>
+                <ul>
+                    <li><strong>Methode:</strong> Online-Experiment, eingebettet in eine Befragung (zur Erfassung der
+                        AVs und Kontrollvariablen).</li>
+                    <li><strong>Design:</strong> Ihr plant ein Between-Subjects-Design. Um H1-H4 zu testen, braucht ihr
+                        ein faktorielles Design: <strong>2 (Kennzeichnung: Ja / Nein) x 4 (Themenbereich: Politik /
+                            Wissenschaft / Sport / Popkultur)</strong>. Das ergibt <strong>8 experimentelle
+                            Gruppen</strong>. Jede Versuchsperson wird zufällig einer dieser 8 Gruppen zugewiesen und
+                        sieht nur einen einzigen Stimulus (einen Instagram-Post).</li>
+                    <li><strong>Unabhängige Variablen (UVs):</strong>
+                        <ol>
+                            <li>Kennzeichnung (manipuliert: Label vorhanden vs. nicht vorhanden).</li>
+                            <li>Themenbereich (manipuliert: Inhalt des Posts entspricht einem der 4 Bereiche).</li>
+                        </ol>
+                    </li>
+                    <li><strong>Abhängige Variablen (AVs):</strong> Gemessen über 5-stufige Likert-Skalen nach
+                        Präsentation des Stimulus: Glaubwürdigkeit, Authentizität, Reputation der Tagesschau,
+                        Interaktionsaffinität (Like/Share/Comment-Wahrscheinlichkeit).</li>
+                    <li><strong>Stimulusmaterial:</strong> Erstellt realistische Mock-ups von Tagesschau-Instagram-Posts
+                        für jeden der 4 Themenbereiche. Die Posts sollten sich nur im Thema und in der Kennzeichnung
+                        unterscheiden, ansonsten möglichst identisch sein (Layout, Bildstil etc.). Achtet darauf, dass
+                        die Kennzeichnung klar sichtbar, aber nicht unrealistisch aufdringlich ist.</li>
+                    <li><strong>Untersuchungsanlage:</strong> Online-Umgebung (z.B. SoSci Survey).</li>
+                </ul>
+                </p>
+
+                <p><strong>Indikatorenbildung:</strong> Entwickelt die konkreten Items (Fragen/Aussagen) für eure
+                    Likert-Skalen zur Messung der AVs. Nutzt validierte Skalen, wo möglich (z.B. für Glaubwürdigkeit).
+                    Beispiel-Item für Reputation: "Dieser Beitrag beeinflusst meine Meinung über die Tagesschau
+                    insgesamt [sehr negativ ... sehr positiv]". Für Interaktion: "Wie wahrscheinlich ist es, dass Sie
+                    diesen Beitrag liken würden? [sehr unwahrscheinlich ... sehr wahrscheinlich]".</p>
+
+                <p><strong>Datenerhebung:</strong>
+                <ul>
+                    <li>Rekrutiert eure Versuchspersonen (ggf. Studierende, Bekanntenkreis, Online-Panel?).</li>
+                    <li>Implementiert die Zufallszuweisung (Randomisierung) zu den 8 Gruppen in eurem Umfragetool (SoSci
+                        Survey kann das).</li>
+                    <li>Präsentiert den Stimulus (den jeweiligen Instagram-Post).</li>
+                    <li>Erfasst die AVs direkt danach.</li>
+                    <li>Fügt Manipulationschecks hinzu: "Ist Ihnen an dem Beitrag etwas Besonderes aufgefallen?"
+                        (offen), "War der Beitrag als KI-generiert gekennzeichnet?" (ja/nein/weiß nicht).</li>
+                    <li>Erfasst Kontrollvariablen (Alter, Geschlecht, Bildung, Social Media Nutzung, Voreinstellung zur
+                        Tagesschau, Voreinstellung zu KI).</li>
+                </ul>
+                </p>
+
+                <p><strong>Datenanalyse:</strong>
+                <ul>
+                    <li>Prüft die Randomisierung (sind die Gruppen bzgl. Alter, Geschlecht etc. vergleichbar?).</li>
+                    <li>Wertetet die Manipulationschecks aus (haben die Vpn die Kennzeichnung bemerkt?).</li>
+                    <li>Verwendet eine <strong>zweifaktorielle ANOVA</strong> für jede AV (Glaubwürdigkeit,
+                        Authentizität etc.). Diese Analyse testet:
+                        <ul>
+                            <li>Den Haupteffekt der Kennzeichnung (wirkt sich Labeling generell aus? -> H1, H2, H3).
+                            </li>
+                            <li>Den Haupteffekt des Themenbereichs (gibt es generelle Unterschiede zwischen Themen?).
+                            </li>
+                            <li>Den <strong>Interaktionseffekt</strong> zwischen Kennzeichnung und Themenbereich (wirkt
+                                sich die Kennzeichnung unterschiedlich aus, je nach Thema? -> H4!).</li>
+                        </ul>
+                    </li>
+                    <li>Bei signifikanten Effekten folgen Post-hoc-Tests oder geplante Kontraste, um spezifische
+                        Gruppenunterschiede zu prüfen.</li>
+                </ul>
+                </p>
+
+                <p><strong>Ergebnisdarstellung:</strong> Berichtet die Ergebnisse der ANOVAs (F-Werte, p-Werte,
+                    Effektstärken). Stellt die Mittelwerte der Gruppen (z.B. in Balkendiagrammen mit Fehlerbalken) dar,
+                    insbesondere um den Interaktionseffekt für H4 zu visualisieren.</p>
+
+                <p><strong>Bericht, Publikation:</strong> Dokumentiert euer Experiment detailliert: Theoretischer
+                    Hintergrund, Hypothesen, Methode (Design, Stichprobe, Stimuli, Ablauf, Messinstrumente), Ergebnisse,
+                    Diskussion (Interpretation der Ergebnisse im Licht der Theorie, Limitationen eures Experiments,
+                    praktische Implikationen für Journalismus/Kennzeichnungspflicht).</p>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        const tabs = document.querySelectorAll('.tab-button');
+        const tabContents = document.querySelectorAll('.tab-content');
+        const svgs = {
+            'content-analysis': document.getElementById('roessler-svg'),
+            'survey': document.getElementById('scholl-svg'),
+            'experiment': document.getElementById('brosius-svg')
+        };
+        let currentTooltip = null;
+        let activeBox = null;
+
+        // --- General Explanations (Remain the same) ---
+        const generalExplanations = {
+            // Rössler (Content Analysis) - Keep all entries
+            'roessler-erkenntnisinteresse': "Ausgangspunkt jeder Forschung. Was soll warum untersucht werden? Kann theoretisch motiviert (Wissenslücke schließen) oder praktisch (konkretes Problem lösen) sein.",
+            'roessler-fundierung': "Einordnung der Fragestellung in bestehende Theorien. Welche theoretischen Konzepte sind relevant?",
+            'roessler-forschungsstand': "Sichtung und Darstellung bisheriger Forschung zum Thema. Was ist bereits bekannt, wo gibt es Lücken?",
+            'roessler-begriffe': "Klare Definition der zentralen Konzepte, die in der Untersuchung verwendet werden.",
+            'roessler-hypothesen': "Formulierung von überprüfbaren Annahmen über Zusammenhänge, basierend auf Theorie und Forschungsstand. In der qualitativen Inhaltsanalyse oft offener formuliert oder erst im Prozess generiert.",
+            'roessler-methodenwahl': "Entscheidung für die Inhaltsanalyse als Methode und Planung der spezifischen Vorgehensweise.",
+            'roessler-problemstellung': "Konkretisierung der Forschungsfrage für die Inhaltsanalyse.",
+            'roessler-projektplanung': "Organisation der Analyse: Ressourcen (Geld, Zeit), Personal (Codierer), Zeitplan.",
+            'roessler-material': "Auswahl und Beschaffung des zu analysierenden Materials (Texte, Bilder, Videos etc.). Ggf. Anpassung/Bildung von Hypothesen basierend auf erstem Materialkontakt.",
+            'roessler-analyseeinheiten': "Festlegung, was genau die Einheiten sind, die codiert werden (z.B. Artikel, Szene, Tweet, Satz).",
+            'roessler-kategorien': "Entwicklung des Kategoriensystems zur Erfassung der relevanten Merkmale. Kann deduktiv (theoriegeleitet) oder induktiv (empiriegeleitet) erfolgen.",
+            'roessler-probecodierung': "Test des Kategoriensystems an einem kleinen Teil des Materials, um Verständlichkeit und Anwendbarkeit zu prüfen.",
+            'roessler-codierschulung': "Training der Codierer, um eine einheitliche Anwendung des Kategoriensystems sicherzustellen.",
+            'roessler-codebuch': "Finale Version des Kategoriensystems mit genauen Definitionen, Beispielen und Codieranweisungen.",
+            'roessler-codierung': "Systematische Anwendung des Codebuchs auf das gesamte Untersuchungsmaterial.",
+            'roessler-auswertung': "Dateneingabe, -aufbereitung und statistische Analyse der codierten Daten (bei quantitativer IA) oder qualitative Interpretation (bei qualitativer IA).",
+            'roessler-interpretation': "Deutung der Ergebnisse im Lichte der Forschungsfrage, Hypothesen und Theorie.",
+            'roessler-darstellung': "Aufbereitung und Präsentation der Ergebnisse (Tabellen, Grafiken, Berichte).",
+            'roessler-publikation': "Veröffentlichung der Ergebnisse in wissenschaftlichen Journalen, Büchern etc.",
+            'roessler-forschungsbericht': "Umfassende Dokumentation des gesamten Forschungsprozesses und der Ergebnisse.",
+
+            // Scholl (Survey) - Keep all entries
+            'scholl-fragestellung': "Die klare Formulierung des Forschungsproblems oder der Frage, die beantwortet werden soll.",
+            'scholl-konzeptualisierung': "Definition der theoretischen Konzepte und ggf. Ableitung von Hypothesen oder Bezug zu einer Theorie.",
+            'scholl-methode': "Auswahl der Befragung als Methode (z.B. online, telefonisch, persönlich).",
+            'scholl-operationalisierung': "Übersetzung der theoretischen Konzepte in messbare Fragen (Erstellung des Fragebogens).",
+            'scholl-grundgesamtheit': "Definition der Population, über die eine Aussage getroffen werden soll.",
+            'scholl-auswahl': "Auswahl der Stichprobe (Teilnehmende) aus der Grundgesamtheit (z.B. Zufallsstichprobe, Quotenstichprobe).",
+            'scholl-pretest': "Test des Fragebogens mit einer kleinen Gruppe, um Verständlichkeit, Länge und technische Funktion zu prüfen.",
+            'scholl-hauptuntersuchung': "Durchführung der eigentlichen Befragung mit der ausgewählten Stichprobe (Datenerhebung).",
+            'scholl-aufbereitung': "Eingabe der Daten in eine Datenbank, Prüfung auf Fehler und Bereinigung des Datensatzes.",
+            'scholl-auswertung': "Statistische Analyse der erhobenen Daten zur Beantwortung der Forschungsfrage und Überprüfung der Hypothesen.",
+            'scholl-datenpraesentation': "Darstellung und Veröffentlichung der Ergebnisse.",
+
+            // Brosius (Experiment) - Keep all entries
+            'brosius-phaenomen': "Beobachtung eines Phänomens in der Realität oder einer Wissenslücke, die untersucht werden soll.",
+            'brosius-auftrag': "Der Anlass der Forschung kann ein externer Auftrag oder eigenes wissenschaftliches Interesse sein.",
+            'brosius-fragestellung': "Präzise Formulierung der wissenschaftlichen Frage, oft nach einem Ursache-Wirkungs-Zusammenhang.",
+            'brosius-fundierung': "Theoretische Einbettung der Fragestellung, Begründung der Relevanz, Darstellung des Forschungsstands.",
+            'brosius-begriffe': "Klare Definition aller relevanten Konstrukte und Variablen (unabhängige, abhängige, Kontrollvariablen).",
+            'brosius-hypothesen': "Formulierung spezifischer, testbarer Kausalhypothesen (Wenn X, dann Y).",
+            'brosius-konzeption': "Detaillierte Planung des Experiments: Wahl des Designs (z.B. Between-Subjects, Within-Subjects), Festlegung der Manipulation (UV), Wahl der Messinstrumente (AV), Wahl der Untersuchungsanlage.",
+            'brosius-indikatoren': "Konkrete Messvorschriften für die abhängigen Variablen (Operationalisierung der AV).",
+            'brosius-datenerhebung': "Durchführung des Experiments unter kontrollierten Bedingungen, Messung der abhängigen Variablen.",
+            'brosius-datenanalyse': "Statistische Auswertung der Daten, um den Effekt der Manipulation (UV) auf die Messung (AV) zu prüfen (z.B. T-Test, ANOVA).",
+            'brosius-ergebnisdarstellung': "Zusammenfassung und Visualisierung der Ergebnisse.",
+            'brosius-bericht': "Verfassen eines Forschungsberichts oder einer Publikation, die den Prozess und die Ergebnisse dokumentiert."
+        };
+
+        // --- Tooltip Functions ---
+        function showTooltip(boxElement, text) {
+            // Remove existing tooltip first
+            hideTooltip();
+
+            const tooltip = document.createElement('div');
+            tooltip.className = 'tooltip';
+            tooltip.innerHTML = text;
+            document.body.appendChild(tooltip);
+            currentTooltip = tooltip; // Store reference
+
+            const boxRect = boxElement.getBoundingClientRect();
+            const tooltipRect = tooltip.getBoundingClientRect();
+
+            // Calculate position (above the box, centered)
+            let top = boxRect.top + window.scrollY - tooltipRect.height - 10; // 10px spacing
+            let left = boxRect.left + window.scrollX + (boxRect.width / 2) - (tooltipRect.width / 2);
+
+            // Adjust if tooltip goes off-screen horizontally
+            if (left < 0) left = 5;
+            const rightEdge = left + tooltipRect.width;
+            if (rightEdge > window.innerWidth) {
+                left = window.innerWidth - tooltipRect.width - 5;
+            }
+            // Adjust if tooltip goes off-screen vertically (top)
+            if (top < window.scrollY) { // If it goes above the viewport top
+                top = boxRect.bottom + window.scrollY + 10; // Position below instead
+                // Adjust pointer - this requires more complex CSS or JS to flip the triangle
+                // For simplicity, we might omit the pointer flip for now.
+            }
+
+
+            tooltip.style.top = `${top}px`;
+            tooltip.style.left = `${left}px`;
+
+            // Make it visible after positioning
+            requestAnimationFrame(() => {
+                tooltip.classList.add('visible');
+            });
+        }
+
+        function hideTooltip() {
+            if (currentTooltip) {
+                currentTooltip.remove();
+                currentTooltip = null;
+            }
+        }
+
+        // --- Event Listeners ---
+
+        // Tab switching logic
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                const targetTab = tab.getAttribute('data-tab');
+
+                tabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+
+                tabContents.forEach(content => {
+                    content.classList.remove('active');
+                    if (content.id === `tab-${targetTab}`) {
+                        content.classList.add('active');
+                    }
+                });
+                // Reset highlighting and hide tooltip when switching tabs
+                resetInteractionState();
+            });
+        });
+
+        // Add click listeners to SVG boxes
+        Object.keys(svgs).forEach(key => {
+            const svg = svgs[key];
+            if (svg) {
+                const boxes = svg.querySelectorAll('.process-box:not(.dashed-border)');
+                boxes.forEach(box => {
+                    box.addEventListener('click', (event) => {
+                        const clickedBox = event.target.closest('.process-box');
+                        if (!clickedBox) return;
+                        const stepId = clickedBox.id;
+                        if (!stepId) return;
+
+                        // --- Highlighting Logic ---
+                        const currentlyHighlighted = svg.querySelector('.highlighted');
+
+                        // If clicking the already active box, deactivate it
+                        if (currentlyHighlighted === clickedBox) {
+                            clickedBox.classList.remove('highlighted');
+                            hideTooltip();
+                            activeBox = null;
+                        } else {
+                            // Deactivate previous box (if any)
+                            if (currentlyHighlighted) {
+                                currentlyHighlighted.classList.remove('highlighted');
+                            }
+                            // Activate new box
+                            clickedBox.classList.add('highlighted');
+                            activeBox = clickedBox; // Store reference to active box
+
+                            // --- Tooltip Logic ---
+                            const description = generalExplanations[stepId] || "Keine Erklärung hinterlegt.";
+                            showTooltip(clickedBox, description);
+                        }
+                    });
+                });
+            }
+        });
+
+        // Hide tooltip on scroll or resize for simplicity
+        window.addEventListener('scroll', hideTooltip);
+        window.addEventListener('resize', hideTooltip);
+
+
+        // Function to reset highlighting and hide tooltips
+        function resetInteractionState() {
+            Object.keys(svgs).forEach(key => {
+                const svg = svgs[key];
+                if (svg) {
+                    const highlighted = svg.querySelector('.highlighted');
+                    if (highlighted) {
+                        highlighted.classList.remove('highlighted');
+                    }
+                }
+            });
+            hideTooltip();
+            activeBox = null;
+        }
+
+        // Initial setup: Ensure no highlights or tooltips are visible
+        resetInteractionState();
+
+        const helpToggleButtons = document.querySelectorAll('.toggle-help-button');
+
+        helpToggleButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const helpContent = button.nextElementSibling; // Assumes the help div is right after the button
+                if (helpContent && helpContent.classList.contains('specific-help-content')) {
+                    const isHidden = helpContent.style.display === 'none' || helpContent.style.display === '';
+                    helpContent.style.display = isHidden ? 'block' : 'none';
+                    button.textContent = isHidden ? button.textContent.replace('anzeigen', 'verbergen') : button.textContent.replace('verbergen', 'anzeigen');
+                } else {
+                    console.error("Could not find the specific-help-content div next to the button:", button);
+                }
+            });
+        });
+    </script>
+
+</body>
+
+</html>
